@@ -1,0 +1,21 @@
+[
+  {
+    "Premiere - Fireplace": {"", "nn"},
+    "Nask - Garage Door": {"",},
+    "McClarren - Granite Countertops": {},
+    "Tryon And Sons - Finish Carpentry": {},
+    "Triplewood - Framer": {},
+    "Powell Well & Drilling - Well": {},
+    "Pusey Electric - Electric": {},
+    "H&S - Plumbing": {},
+    "Gintas - HVAC": {},
+    "Dave Dragen - Wire Shelving": {},
+    "Diplomat - Built-In Shelving": {},
+    "Premium Building Products - Supplier": {
+      "supply_types": ["trim", "windows", "doors", "door hardware", "window service"],
+    },
+    "Century Cabinets - Supplier": {
+      "supply_types": ["cabinets", "cabinet hardware", "marble tops"],
+    },
+  }
+]

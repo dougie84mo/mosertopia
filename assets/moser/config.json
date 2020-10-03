@@ -1,0 +1,26 @@
+{
+  "trades": {
+    "": {
+      "name": ""
+    }
+  },
+  "suppDeliv": {},
+  "internalEmails": [
+    "tr@moserhomes.com",
+    "aj@moserhomes.com",
+    "dougie@moserhomes.com",
+    "paula@moserhomes.com",
+    "christine@moserhomes.com"
+  ],
+  "serviceEmails": [
+    "service-warranty@moserhomes.com"
+  ],
+  "scheduleEmails": {
+    "schedule@moserhomes.com": "password",
+  },
+  "login": {
+    "loggedin": false,
+    "loggedinas": null
+  },
+
+}
