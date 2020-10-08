@@ -1,0 +1,9 @@
+[
+  {"type": "title", "title": "Moser Settings"},
+  {
+    "type": "user", "user": {
+      "loggedin": false,
+      "loggedinas": null
+    }
+  }
+]

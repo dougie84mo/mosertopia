@@ -4,7 +4,7 @@
     ["address_name", "address, lot#"],
     ["address_full", "$address_name, city, stateabbr, zip"],
     ["description", "text"],
-    ["notifications", ]
+    ["notifications"]
   ],
   {}
 ]

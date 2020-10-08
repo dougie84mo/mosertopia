@@ -9,79 +9,110 @@ import xlsxwriter
 import kivy
 from kivy.app import App
 from kivy.uix.treeview import TreeView, Widget
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.accordion import Accordion, AccordionItem
+from kivy.uix.stacklayout import StackLayout
+from kivy.uix.tabbedpanel import *
+from kivy.properties import ObjectProperty
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from main import SimpleAT
 
 
 class AppGrid(GridLayout):
-    cols = 2
-    tabs = ["Mosertopia", "Vendors", "Projects", "Schedule", "Warranty"]
-    page = ''
+    __tabs = ["Mosertopia", "Vendors", "Projects", "Schedule"]
+    cols = 1
+    # login = ObjectProperty(None)
+    # tabbed_header = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(AppGrid, self).__init__(**kwargs)
-        loggedin = None
-        configjson = open('assets/moser/config.json')
-        config = json.load(configjson)
-        configjson.close()
-        if config['login']['loggedin'] and config['login']['loggedinas']:
-            loggedin = True
-            print(type(config['login']['loggedinas']))
+        # configjson = open('assets/moser/user.json')
+        # login = json.load(configjson)
+        tabbed = TabbedPanel()
+        tabbed.do_default_tab = False
 
-
-
-        accordion = Accordion(orientation='vertical')
-        for x in range(len(self.tabs)):
-            tab_name = self.tabs[x]
-            item = AccordionItem(title=f'{tab_name}')
-            if tab_name == self.tabs[0]:
-                wid = Label(text=tab_name, font_size=16)
+        # configjson.close()
+        for x in range(len(self.__tabs)):
+            tab_name = self.__tabs[x]
+            tabbed_header = TabbedPanelHeader(text=tab_name)
+            tabbed.add_widget(tabbed_header)
+            layout = GridLayout(cols=1)
+            if tab_name == self.__tabs[0]:
+                tabbed_header.content = MosertopiaPage(layout)
+            elif tab_name == self.__tabs[1]:
+                tabbed_header.content = VendorsPage(layout)
+            elif tab_name == self.__tabs[2]:
+                tabbed_header.content = ProjectsPage(layout)
             else:
-                wid = Button(text=tab_name, font_size=14)
-                wid.on_press()
-            item.add_widget(wid)
-            print(item)
-            accordion.add_widget(item)
-        self.add_widget(accordion)
+                tabbed_header.content = SchedulePage(layout)
 
+            # panel = TabbedPanelContent(tabbed_header.content)
+
+            # print(tabbed_header)
+
+        print(tabbed.content)
+        self.add_widget(tabbed)
+
+        # self.add_widget(self.tab_content)
         # Open login page and make all other pages
         # On init, show the first page
 
 
+# class MosertopiaPage(GridLayout):
+#     cols = 1
+#
+#     def __init__(self, **kwargs):
+#         super(MosertopiaPage, self).__init__(**kwargs)
+#
+#
+# class VendorsPage(GridLayout):
+#     cols = 1
+#     def __init__(self, **kwargs):
+#         super(VendorsPage, self).__init__(**kwargs)
+#
+#
+# class ProjectsPage(GridLayout):
+#     cols = 1
+#     def __init__(self, **kwargs):
+#         super(ProjectsPage, self).__init__(**kwargs)
+#
+#
+# class SchedulePage(GridLayout):
+#     cols = 1
+#
+#     def __init__(self, **kwargs):
+#         super(SchedulePage, self).__init__(**kwargs)
 
-        # self.add_widget(self.current_page)
 
 
-class VendorsPage(FloatLayout):
-    pass
+def MosertopiaPage(layout):
+    return layout
 
 
-class MosertopiaPage(FloatLayout):
-    pass
+def VendorsPage(layout):
+    return layout
 
 
-class WarrantyPage(FloatLayout):
-    pass
+def ProjectsPage(layout):
+    return layout
 
 
-class SchedulePage(FloatLayout):
-    pass
+def SchedulePage(layout):
+    return layout
 
 
-class ProjectsPage(FloatLayout):
-    pass
 
 
 class MoserApp(App):
-    signinparam = ['username', 'password', 'signIn-btn']
 
     def build(self):
-
         return AppGrid()
+
+    # def build_settings(self, settings):
+    #     jsondata = open('assets/moser/settings_config.json')
+    #     j = json.load(jsondata)
+    #     settings.add_json_data('')
+    #     jsondata.close()
 
 
 if __name__ == '__main__':

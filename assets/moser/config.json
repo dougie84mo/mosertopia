@@ -1,9 +1,5 @@
 {
-  "trades": {
-    "": {
-      "name": ""
-    }
-  },
+  "trades": {},
   "suppDeliv": {},
   "internalEmails": [
     "tr@moserhomes.com",
@@ -16,11 +12,38 @@
     "service-warranty@moserhomes.com"
   ],
   "scheduleEmails": {
-    "schedule@moserhomes.com": "password",
+    "schedule@moserhomes.com": "password"
   },
-  "login": {
-    "loggedin": false,
-    "loggedinas": null
+  "sign_in": {
+    "username": "aj@moserhomes.com",
+    "password": "6106371972"
   },
+  "sign_in_cls": [
+    "username",
+    "password",
+    "signIn-btn"
+  ],
+  "paths": {
+    "url_base": "https://app.buildtopia.com",
+    "url": "/english_exec/login",
+    "login_url": "https://app.buildtopia.com/english_exec/login",
+    "project": "Marsh Lea",
+    "pro": "[value=\"Project\"]",
+    "pm": "https://app.buildtopia.com/english_exec/projectmgmt-lot?op=project_lot_list_show&project_id=16455&clear_session=true",
+    "cs": "https://app.buildtopia.com/english_exec/service-home",
+    "cs_requests": "https://app.buildtopia.com/english_exec/service-requests?clean_session=true",
+    "cs_requests_list": "table[summary=\"Result Table\"]"
+  },
+  "xpaths": {
+
+  },
+  "sort": {
+    "landscape": {},
+    "jeff": {},
+    "tryon": {},
+    "pusey": {},
+
+  }
+
 
 }

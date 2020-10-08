@@ -4,17 +4,22 @@
 # Press ⌃R to execute it or replace it with your code.
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
-from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver import Chrome, ChromeOptions
+# from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.common.by import By
+# import webbrowser
+# from bs4 import BeautifulSoup
 import requests
-import datetime
+# import datetime
 import time
 import json
 import smtplib
 import imaplib
-import datetime
+# import datetime
 import xlsxwriter
+from prettyprinter import pprint
+
+global MASTER_MOSER_DATA
 
 
 class SimpleAT:
@@ -64,15 +69,7 @@ class SimpleAT:
         if lots is None:
             lots = []
 
-    @staticmethod
-    def selenium_signin(login_url, password, username, names):
-        d = webdriver.Chrome(executable_path='drivers/chromedriver')
-        d.get(login_url)
-        d.find_element_by_name(names[0]).send_keys(username)
-        d.find_element_by_name(names[1]).send_keys(password)
-        d.find_element_by_class_name(names[2]).click()
 
-        return d
 
     @staticmethod
     def email_startup(gmail=0, imap=1, port=587, message_details=None):
@@ -113,8 +110,75 @@ class SimpleAT:
         # dummy info
         self.email_startup(gmail, imap=0, port=port, message_details=email_to_info)
 
-        # for
+    @staticmethod
+    def selenium_start(url):
+        d = webdriver.Chrome(executable_path='drivers/chromedriver')
+        d.get(url)
+        return d
 
-    #open browser
-    #find cookie
-    #represent the request
+    @staticmethod
+    def selenium_signin(sbrowser: webdriver.Chrome, login, names=[]):
+
+        # webbrowser.get('chrome').open_new_tab(login_url)
+        # time.sleep(10)
+        sbrowser.find_element_by_name(names[0]).send_keys(login["username"])
+        sbrowser.find_element_by_name(names[1]).send_keys(login["password"])
+        sbrowser.find_element_by_class_name(names[2]).click()
+
+        pprint(sbrowser.get_cookies())
+
+
+
+    @staticmethod
+    def find_element_func_click(page: webdriver.Chrome, element_dict={}):
+        for element in element_dict:
+            if 2 in element and element[2] is not None:
+                elements = page.find_elements(element[0], element[1])
+                # TODO: add search advanced by element function
+                #  - associate with the element in loop search
+                i = element[2] - 1
+                new_element = elements[i]
+            elif 1 in element and element[1] is not None:
+                new_element = page.find_element(element[0], element[1])
+            else:
+                new_element = page.find_element(element[0])
+            new_element.click()
+            #try and change this function to a dynamic one if possible
+
+    # @staticmethod
+    # def get_to_page():
+    # def monitorSiteByHtml(site_url, monitor_refresh_rate=60000, proxies=[]):
+    #     # for
+
+with open("assets/moser/config.json") as j:
+    j = json.load(j)
+    paths = j["paths"]
+    sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
+    SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+    print(sbrowser.find_element_by_name("password"))
+    if sbrowser.find_element_by_name("password") is not None:
+        SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+    sbrowser.get(paths["cs_requests"])
+    sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
+    table_body = sbrowser.find_element_by_css_selector(paths["cs_requests_list"])
+    results = table_body.find_elements_by_class_name("background") + table_body.find_elements_by_class_name("altbackground")
+    for tr in results:
+        project_name = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(8)').get_attribute('inner_html')
+        # Maybe in Customs Homes, something different
+        if 'Marsh Lea' in project_name or 'Custom Homes' in project_name:
+            url = tr.find_elements_by_css_selector('td:first.a').get_attribute('href')
+            # may need to add urls to array first then loop and catch
+            sbrowser.get(url)
+            r_table = sbrowser.find_element_by_css_selector('#bottom ')
+
+
+
+
+
+
+
+
+    pprint(results)
+    time.sleep(5)
+    sbrowser.quit()
+
