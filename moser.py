@@ -18,6 +18,87 @@ from kivy.uix.button import Button
 from main import SimpleAT
 
 
+class MoserHelpers:
+
+    @staticmethod
+    def moser_hardcode_resultslib(j):
+        paths = j["paths"]
+        sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
+        SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+        # print(sbrowser.find_element_by_name("password"))
+        # if sbrowser.find_element_by_name("password") is not None:
+        #     SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+        sbrowser.get(paths["cs_requests"])
+        sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
+        results = sbrowser.find_element_by_css_selector(paths["cs_requests_list"]).find_elements_by_tag_name("tr")
+        results.pop(0)
+        return results
+
+
+    @staticmethod
+    def moser_hardcode_warranty_marsh_lea():
+
+        # # may need to add urls to array first then loop and catch
+        # r_table = sbrowser.find_elements_by_css_selector('#bottom tr')
+        # r_table.pop(0)
+        # for r in table_body:
+        with open("assets/moser/config.json") as j:
+            j = json.load(j)
+            results = MoserHelpers.moser_log_to_page(j)
+            moser_data = {
+                "address_lot": [],
+                "description": [],
+                "category": [],
+                "status": [],
+                "vendors": [],
+                "opened_at": [],
+                "closed_at": [],
+            }
+            # edit_request, open_request
+
+            for tr in results:
+                pprint(tr)
+                project_name = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(8)').text
+                pprint(project_name)
+                # Maybe in Customs Homes, something different
+                if 'Marsh Lea' in project_name or 'Custom Homes' in project_name:
+                    url = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(1) a').get_attribute('href')
+
+                    try:
+                        with SimpleAT.selenium_start(url) as other_tab:
+                            w_table = other_tab.find_elements(By.CSS_SELECTOR, '#listTable > tbody > tr')
+                            w_table.pop(0)
+                            lot_id = other_tab.find_element(By.XPATH, j["xpaths"]["cs_lots"])
+
+                            pprint(lot_id)
+                            for el in w_table:
+                                tds = el.find_elements_by_tag_name("td")
+                                moser_data["address_lot"].append(lot_id)
+                                descr = tds[2].text
+                                moser_data["description"].append(descr)
+                                opened = True if tds[1].text == "Open" else False
+                                # AI.something
+                    except Exception as e:
+                        print(e)
+
+    @staticmethod
+    def moser_log_to_page(j):
+        paths = j["paths"]
+        sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
+        SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+        print(sbrowser.find_element_by_name("password"))
+        if sbrowser.find_element_by_name("password") is not None:
+            SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+        sbrowser.get(paths["cs_requests"])
+        # Technically uneccessary
+        sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
+        results = sbrowser.find_element_by_css_selector(paths["cs_requests_list"]).find_elements_by_tag_name("tr")
+        results.pop(0)
+        return results
+
+
+
+
 class AppGrid(GridLayout):
     __tabs = ["Mosertopia", "Vendors", "Projects", "Schedule"]
     cols = 1
@@ -99,8 +180,6 @@ def ProjectsPage(layout):
 
 def SchedulePage(layout):
     return layout
-
-
 
 
 class MoserApp(App):

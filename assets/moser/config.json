@@ -32,16 +32,29 @@
     "pm": "https://app.buildtopia.com/english_exec/projectmgmt-lot?op=project_lot_list_show&project_id=16455&clear_session=true",
     "cs": "https://app.buildtopia.com/english_exec/service-home",
     "cs_requests": "https://app.buildtopia.com/english_exec/service-requests?clean_session=true",
-    "cs_requests_list": "table[summary=\"Result Table\"]"
+    "cs_requests_list": "table[summary=\"Result Table\"]",
   },
   "xpaths": {
+    "cs_lots": "//*[@id=\\\"top_underline\\\"]/table[2]/tbody/tr/td[3]/text()[3]"
 
   },
-  "sort": {
-    "landscape": {},
-    "jeff": {},
-    "tryon": {},
-    "pusey": {},
+  "sort_ids": {
+    "landscape": ["grass"],
+    "eagle": ["Shower Door", "mirror"],
+    "hs": ["plumbing"],
+    "premium": ["trim", "casing", "baseboard", "door", "window", "windows", "screen"],
+    "century": ["toe", "toe kicks", "handle", "knob"],
+    "tryon": ["trim", "casing", "baseboard", "door", "toe", "toe kicks", "handle", "knob", "latch", "latches"],
+    "pusey": ["outlet", "light"],
+    "garage_door": ["Garage Door", "Garage door"],
+    "driveway": ["driveway install", "driveway seems"],
+    "tile": ["grout", "tile"],
+    "flooring": ["carpet", "hardwood", "lvp", "lvt", "transition"],
+    "drywall": ["nail pops", "pops", "drywall", "tape"],
+    "ajacs": ["paint", "stain"],
+    "home_services": ["generator"]
+
+
 
   }
 
