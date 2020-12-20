@@ -6,7 +6,6 @@
 
 from selenium import webdriver
 # from selenium.webdriver import Chrome, ChromeOptions
-from selenium.webdriver.common.by import By
 # import webbrowser
 # from bs4 import BeautifulSoup
 import requests
@@ -64,7 +63,7 @@ class SimpleAT:
 
 
     def textMessagingScheduleInit(self):
-        with open('assets/moser/config.json') as c:
+        with open('data/moser/config.json') as c:
             j = json.load(c)
 
     def textMessagingSchedule(self, vendor, dt, lots=None):
@@ -75,7 +74,7 @@ class SimpleAT:
 
     @staticmethod
     def email_startup(gmail=0, imap=1, port=587, message_details=None):
-        with open("assets/gmails.json", "r") as gmails:
+        with open("data/gmails.json", "r") as gmails:
             gmails = json.load(gmails)
             server = gmails["imap"] if imap == 1 else gmails["smtp"]
             email_info = gmails["fresh"][gmail]
@@ -129,7 +128,7 @@ class SimpleAT:
 
         while sbrowser.find_element_by_name(names[1]) is not None and count < 5:
             SimpleAT.selenium_signin(sbrowser, login, names)
-            ++count
+            count = count + 1
 
         pprint(sbrowser.get_cookies())
 
