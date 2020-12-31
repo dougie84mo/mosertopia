@@ -9,11 +9,11 @@ from datetime import datetime
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from webhook import DiscordWebhook, DiscordEmbed
-from chromedriver_py import binary_path as driver_path
+# from chromedriver_py import binary_path as driver_path
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QWidget, QLabel
 from PyQt5.QtCore import QSize, QRect
-import json, platform, darkdetect, random, settings, threading, hashlib, base64, string
+import json, platform, random, settings, threading, hashlib, base64, string
 normal_color = Fore.CYAN
 
 def write_data(path,data):
@@ -182,39 +182,39 @@ def send_webhook(webhook_type,site,profile,task_id,image_url):
 def open_browser(link,cookies):
     threading.Thread(target = start_browser, args=(link,cookies)).start()
 
-def start_browser(link,cookies):
-    caps = DesiredCapabilities().CHROME
-    caps["pageLoadStrategy"] = "eager" 
-    chrome_options = ChromeOptions()
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option("useAutomationExtension", False)
-    driver = Chrome(desired_capabilities=caps, executable_path=driver_path, options=chrome_options)
-    driver.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
-        Object.defineProperty(window, 'navigator', {
-            value: new Proxy(navigator, {
-              has: (target, key) => (key === 'webdriver' ? false : key in target),
-              get: (target, key) =>
-                key === 'webdriver'
-                  ? undefined
-                  : typeof target[key] === 'function'
-                  ? target[key].bind(target)
-                  : target[key]
-            })
-        })
-                  """
-            },
-    )
-    driver.get(link)
-    for cookie in cookies:
-        driver.add_cookie({
-            "name": cookie["name"],
-            "value" : cookie["value"],
-            "domain" : cookie["domain"]
-        })
-    driver.get(link)
+# def start_browser(link,cookies):
+#     caps = DesiredCapabilities().CHROME
+#     caps["pageLoadStrategy"] = "eager" 
+#     chrome_options = ChromeOptions()
+#     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+#     chrome_options.add_experimental_option("useAutomationExtension", False)
+#     driver = Chrome(desired_capabilities=caps, executable_path=driver_path, options=chrome_options)
+#     driver.execute_cdp_cmd(
+#             "Page.addScriptToEvaluateOnNewDocument",
+#             {
+#                 "source": """
+#         Object.defineProperty(window, 'navigator', {
+#             value: new Proxy(navigator, {
+#               has: (target, key) => (key === 'webdriver' ? false : key in target),
+#               get: (target, key) =>
+#                 key === 'webdriver'
+#                   ? undefined
+#                   : typeof target[key] === 'function'
+#                   ? target[key].bind(target)
+#                   : target[key]
+#             })
+#         })
+#                   """
+#             },
+#     )
+#     driver.get(link)
+#     for cookie in cookies:
+#         driver.add_cookie({
+#             "name": cookie["name"],
+#             "value" : cookie["value"],
+#             "domain" : cookie["domain"]
+#         })
+#     driver.get(link)
 
 def random_delay(delay, start, stop):
     """

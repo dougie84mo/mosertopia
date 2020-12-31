@@ -1,7 +1,8 @@
+import sys, platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QRect
 from utils import QVC, return_data, write_data, get_profile, Encryption
-import sys, platform
+
 
 def no_abort(a, b, c):
     sys.__excepthook__(a, b, c)

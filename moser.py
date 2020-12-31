@@ -1,28 +1,17 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from prettyprinter import pprint, cpprint
-import json
-import smtplib
-import ssl
-import imaplib, email
-import datetime
-import xlsxwriter
-import kivy
-from kivy.app import App
-from kivy.uix.treeview import TreeView, Widget
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.stacklayout import StackLayout
-from kivy.uix.tabbedpanel import *
-from kivy.properties import ObjectProperty
-from kivy.uix.label import Label
-from kivy.uix.button import Button
+import datetime, email, imaplib, json, ssl, smtplib, requests, time
+from prettyprinter import cpprint, pprint
+# from selenium import webdriver
+# from selenium.webdriver.common.by import By
+from pyppeteer import launch
+from bs4 import BeautifulSoup
+
 from main import SimpleAT
 
 
 class MoserHelpers:
 
     @staticmethod
-    def moser_hardcode_warranty_marsh_lea():
+    async def moser_hardcode_warranty_marsh_lea():
 
         # # may need to add urls to array first then loop and catch
         # r_table = sbrowser.find_elements_by_css_selector('#bottom tr')
@@ -101,104 +90,161 @@ class MoserHelpers:
                 return results
             else:
                 return None
+                
+    @staticmethod
+    def mosertopia_login_buildtopia(path_names=None):
+        
+        browser = await launch
+        page  = await browser.newPage
 
 
-
-
-
-class AppGrid(GridLayout):
-    __tabs = ["Mosertopia", "Vendors", "Projects", "Schedule"]
-    cols = 1
-    # login = ObjectProperty(None)
-    # tabbed_header = ObjectProperty(None)
-
-    def __init__(self, **kwargs):
-        super(AppGrid, self).__init__(**kwargs)
-        # configjson = open('assets/moser/user.json')
-        # login = json.load(configjson)
-        tabbed = TabbedPanel()
-        tabbed.do_default_tab = False
-
-        # configjson.close()
-        for x in range(len(self.__tabs)):
-            tab_name = self.__tabs[x]
-            tabbed_header = TabbedPanelHeader(text=tab_name)
-            tabbed.add_widget(tabbed_header)
-            layout = GridLayout(cols=1)
-            if tab_name == self.__tabs[0]:
-                tabbed_header.content = MosertopiaPage(layout)
-            elif tab_name == self.__tabs[1]:
-                tabbed_header.content = VendorsPage(layout)
-            elif tab_name == self.__tabs[2]:
-                tabbed_header.content = ProjectsPage(layout)
+        with open("data/moser/config.json") as j:
+            j = json.load(j)
+            paths = j["paths"]
+            sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
+            SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+            print(sbrowser.find_element_by_name("password"))
+            if sbrowser.find_element_by_name("password") is not None:
+                SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
+            # return sbrowser
+            if path_names is not None:
+                sbrowser.get(paths[path_names[0]])
+                # Technically uneccessary
+                # sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
+                results = sbrowser.find_element_by_css_selector(paths["cs_requests_list"]).find_elements_by_tag_name("tr")
+                results.pop(0)
+                return results
             else:
-                tabbed_header.content = SchedulePage(layout)
+                return None
 
-            # panel = TabbedPanelContent(tabbed_header.content)
+class SimpleAT:
 
-            # print(tabbed_header)
-
-        print(tabbed.content)
-        self.add_widget(tabbed)
-
-        # self.add_widget(self.tab_content)
-        # Open login page and make all other pages
-        # On init, show the first page
+    def __init__(self, open_tasks=None):
+        # should just be the initial url to get to for the website
+        self.open_tasks = {} if open_tasks is None else open_tasks
 
 
-# class MosertopiaPage(GridLayout):
-#     cols = 1
-#
-#     def __init__(self, **kwargs):
-#         super(MosertopiaPage, self).__init__(**kwargs)
-#
-#
-# class VendorsPage(GridLayout):
-#     cols = 1
-#     def __init__(self, **kwargs):
-#         super(VendorsPage, self).__init__(**kwargs)
-#
-#
-# class ProjectsPage(GridLayout):
-#     cols = 1
-#     def __init__(self, **kwargs):
-#         super(ProjectsPage, self).__init__(**kwargs)
-#
-#
-# class SchedulePage(GridLayout):
-#     cols = 1
-#
-#     def __init__(self, **kwargs):
-#         super(SchedulePage, self).__init__(**kwargs)
+    # Press the green button in the gutter to run the script.
+
+    # def startSession(self, cookieItem):
+    #     self.s.cookies =
+
+    def setLogin(self, user_info, log_url):
+        # USER_INFO includes, password, username, email, phone_number, card_info
+
+        # storeLogins in a database or something similar
+        # TODO: Always check for errors, delete current "session" data and form data
+        with requests.Session() as sess:
+            # log_page = sess.get(self.log_url)
+            log_into_page = sess.post(log_url, user_info)
+            pprint(log_into_page.text)
+            api_cookies = log_into_page.cookies
+            print(api_cookies)
+            # if login and data.cookieSessions is determined
+            #  try to start session with cookies
+            # elseif login and data.form_data is determined try to login
+            # else try to login through random attempts
+            # if the login request fails try the next soup form html
+            # set proper cookies
+            # insert a genuine referer code
+
+            # headers = {'Referer': 'https://'}
+            # use another url if available on form
+
+    def grabCookies(self, url):
+        with requests.Session() as sess:
+            cookiesPage = sess.get(url)
+
+
+    def textMessagingScheduleInit(self):
+        with open('data/moser/config.json') as c:
+            j = json.load(c)
+
+    def textMessagingSchedule(self, vendor, dt, lots=None):
+        if lots is None:
+            lots = []
 
 
 
-def MosertopiaPage(layout):
-    return layout
+    @staticmethod
+    def email_startup(gmail=0, imap=1, port=587, message_details=None):
+        with open("data/gmails.json", "r") as gmails:
+            gmails = json.load(gmails)
+            server = gmails["imap"] if imap == 1 else gmails["smtp"]
+            email_info = gmails["fresh"][gmail]
+            if imap == 1:
+                try:
+                    s = imaplib.IMAP4_SSL(server)
+                    s.login(email_info[0], email_info[1])
+                    s.select('ETest')
+
+                    print(f'These emails are found: {email_info[0]}')
+                except Exception as e:
+                    mails = None
+                    print(e)
+
+            elif port == 465 and imap == 0:
+
+                with smtplib.SMTP_SSL(server, port, context=context) as server:
+                    server.login(email_info[0], email_info[1])
+            elif port == 587 and imap == 0:
+                try:
+                    s = smtplib.SMTP(server, port)
+                    s.ehlo()
+                    s.starttls(context=context)
+                    s.login(email_info[0], email_info[1])
+                    mails = s.mail(email_info[0])
+                    # do something then
+                    print(mails)
+                    s.close()
+                    print(f'This email was logged in: {email_info[0]}')
+                except Exception as e:
+                    print(e)
+
+    def test_email(self, email_to_info, gmail=0, port=587):
+        # dummy info
+        self.email_startup(gmail, imap=0, port=port, message_details=email_to_info)
+
+    @staticmethod
+    def selenium_start(url):
+        d = webdriver.Chrome(executable_path='drivers/chromedriver')
+        d.get(url)
+        return d
+
+    @staticmethod
+    def selenium_signin(sbrowser: webdriver.Chrome, login, names=[], count=0):
+
+        # webbrowser.get('chrome').open_new_tab(login_url)
+        # time.sleep(10)
+        sbrowser.find_element_by_name(names[0]).send_keys(login["username"])
+        sbrowser.find_element_by_name(names[1]).send_keys(login["password"])
+        sbrowser.find_element_by_class_name(names[2]).click()
+
+        while sbrowser.find_element_by_name(names[1]) is not None and count < 5:
+            SimpleAT.selenium_signin(sbrowser, login, names)
+            count = count + 1
+
+        pprint(sbrowser.get_cookies())
 
 
-def VendorsPage(layout):
-    return layout
+
+    @staticmethod
+    def find_element_func_click(page: webdriver.Chrome, element_dict={}):
+        for element in element_dict:
+            if 2 in element and element[2] is not None:
+                elements = page.find_elements(element[0], element[1])
+                # TODO: add search advanced by element function
+                #  - associate with the element in loop search
+                i = element[2] - 1
+                new_element = elements[i]
+            elif 1 in element and element[1] is not None:
+                new_element = page.find_element(element[0], element[1])
+            else:
+                new_element = page.find_element(element[0])
+            new_element.click()
+            #try and change this function to a dynamic one if possible
 
 
-def ProjectsPage(layout):
-    return layout
-
-
-def SchedulePage(layout):
-    return layout
-
-
-class MoserApp(App):
-
-    def build(self):
-        return AppGrid()
-
-    # def build_settings(self, settings):
-    #     jsondata = open('assets/moser/settings_config.json')
-    #     j = json.load(jsondata)
-    #     settings.add_json_data('')
-    #     jsondata.close()
 
 
 if __name__ == '__main__':
