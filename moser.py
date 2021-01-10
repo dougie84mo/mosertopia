@@ -1,11 +1,15 @@
-import datetime, email, imaplib, json, ssl, smtplib, requests, time
+import os, datetime, email, imaplib, json, ssl, smtplib, requests, time, asyncio, xlsxwriter
 from prettyprinter import cpprint, pprint
 # from selenium import webdriver
 # from selenium.webdriver.common.by import By
 from pyppeteer import launch
 from bs4 import BeautifulSoup
 
-from main import SimpleAT
+# from main import SimpleAT 
+
+# class MoserApp:
+
+
 
 
 class MoserHelpers:
@@ -13,143 +17,172 @@ class MoserHelpers:
     @staticmethod
     async def moser_hardcode_warranty_marsh_lea():
 
-        # # may need to add urls to array first then loop and catch
-        # r_table = sbrowser.find_elements_by_css_selector('#bottom tr')
-        # r_table.pop(0)
-        # for r in table_body:
 
         results = MoserHelpers.moser_log_to_page(j, ["cs_requests", "cs_requests_list"])
-        moser_data = {
-            "address_lot": [],
-            "description": [],
-            "category": [],
-            "status": [],
-            "vendors": [],
-            "opened_at": [],
-            "closed_at": [],
-        }
+        moser_data = { "address_lot": [], "description": [], "category": [], "status": [], "vendors": [], "opened_at": [], "closed_at": [], }
         # edit_request, open_request
 
-        for tr in results:
-            pprint(tr)
-            project_name = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(8)').text
-            pprint(project_name)
-            # Maybe in Customs Homes, something different
-            if 'Marsh Lea' in project_name or 'Custom Homes' in project_name:
-                url = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(1) a').get_attribute('href')
+        # for tr in results:
+        #     pprint(tr)
+        #     project_name = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(8)').text
+        #     pprint(project_name)
+        #     # Maybe in Customs Homes, something different
+        #     if 'Marsh Lea' in project_name or 'Custom Homes' in project_name:
+        #         url = tr.find_element(By.CSS_SELECTOR, 'td:nth-child(1) a').get_attribute('href')
 
-                try:
-                    with SimpleAT.selenium_start(url) as other_tab:
-                        w_table = other_tab.find_elements(By.CSS_SELECTOR, '#listTable > tbody > tr')
-                        w_table.pop(0)
-                        lot_id = other_tab.find_element(By.XPATH, j["xpaths"]["cs_lots"])
+        #         try:
+        #             with SimpleAT.selenium_start(url) as other_tab:
+        #                 w_table = other_tab.find_elements(By.CSS_SELECTOR, '#listTable > tbody > tr')
+        #                 w_table.pop(0)
+        #                 lot_id = other_tab.find_element(By.XPATH, j["xpaths"]["cs_lots"])
 
-                        pprint(lot_id)
-                        for el in w_table:
-                            tds = el.find_elements_by_tag_name("td")
-                            moser_data["address_lot"].append(lot_id)
-                            descr = tds[2].text
-                            moser_data["description"].append(descr)
-                            opened = True if tds[1].text == "Open" else False
-                            # AI.something
-                except Exception as e:
-                    print(e)
+        #                 pprint(lot_id)
+        #                 for el in w_table:
+        #                     tds = el.find_elements_by_tag_name("td")
+        #                     moser_data["address_lot"].append(lot_id)
+        #                     descr = tds[2].text
+        #                     moser_data["description"].append(descr)
+        #                     opened = True if tds[1].text == "Open" else False
+        #                     # AI.something
+        #         except Exception as e:
+        #             print(e)
 
 
-    @staticmethod
-    def marsh_lea_pm():
-            results = MoserHelpers.moser_log_to_page(j, ["cs_requests", "cs_requests_list"])
-            moser_data = {
-                "address_lot": [],
-                "description": [],
-                "category": [],
-                "status": [],
-                "vendors": [],
-                "opened_at": [],
-                "closed_at": [],
-                "files": []
-            }
 
-    @staticmethod
-    def moser_log_to_page(path_names=None):
-        with open("data/moser/config.json") as j:
-            j = json.load(j)
-            paths = j["paths"]
-            sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
-            SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
-            print(sbrowser.find_element_by_name("password"))
-            if sbrowser.find_element_by_name("password") is not None:
-                SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
-            # return sbrowser
-            if path_names is not None:
-                sbrowser.get(paths[path_names[0]])
-                # Technically uneccessary
-                # sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
-                results = sbrowser.find_element_by_css_selector(paths["cs_requests_list"]).find_elements_by_tag_name("tr")
-                results.pop(0)
-                return results
-            else:
-                return None
                 
     @staticmethod
-    def mosertopia_login_buildtopia(path_names=None):
-        
-        browser = await launch
-        page  = await browser.newPage
-
-
-        with open("data/moser/config.json") as j:
-            j = json.load(j)
+    async def mosertopia_login_buildtopia():
+        # update = input("Should we update the projects? (y/n)")
+        with open("data/config.json") as jconfig:
+            j = json.load(jconfig)
             paths = j["paths"]
-            sbrowser = SimpleAT.selenium_start(url=paths["login_url"])
-            SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
-            print(sbrowser.find_element_by_name("password"))
-            if sbrowser.find_element_by_name("password") is not None:
-                SimpleAT.selenium_signin(sbrowser, login=j["sign_in"], names=j["sign_in_cls"])
-            # return sbrowser
-            if path_names is not None:
-                sbrowser.get(paths[path_names[0]])
-                # Technically uneccessary
-                # sbrowser.find_element_by_name("ProjectFilter").find_element_by_css_selector(paths["pro"]).click()
-                results = sbrowser.find_element_by_css_selector(paths["cs_requests_list"]).find_elements_by_tag_name("tr")
-                results.pop(0)
-                return results
-            else:
-                return None
+
+        action = str(input("Would you like to see warranty or current selections? (0: Selections, 1: Warranty) \n"))
+        action_int = int(action)
+        project = str(input("What Project would you like to view? (0: Marsh Lea, 1: Custom Homes, 2: T. Moser Land) \n"))
+        project_int = int(project)
+        
+        if (len(j["projects"]) < project_int or project_int < 0) or (action_int != 1 and action_int != 0):
+
+            print("Project must be in projects list 0-2, Action must be 1 or 0")
+            await MoserHelpers.mosertopia_login_buildtopia()
+        else:
+            # - Default Viewport creats viewport maxmiuzzed to browser window size
+            # - args [start-max..] for maximum browser size [args=['--start-maximized'],]
+            browser = await launch(headless=False, defaultViewport=None)
+            pages  = await browser.pages()
+            page = pages[0]
+            apath = j["action_paths"][action_int]
+            await page.goto(j["paths"]["login"])
+            await SimpleAT.pyp_signin(page, login=j["sign_in"])
+            # print(page)
+            
+            p =  j["projects"][project_int]
+            project_dirname = j["project_abbrs"][project_int]
+            if action_int == 0:
+                print(p)
+                await page.waitForSelector(p)
+                await page.click(f'{p} > {apath}')
+                # await page.waitForNavigation()
+                await page.waitForSelector("tr.background")
+                lots_el_li = await page.querySelectorAll("tr.background, tr.altbackground")
+
+                # open lot json file
+                with open('data/lots.json', 'r') as lots:    
+                    lots_data = json.load(lots)
+                    file_updated = 1
+
+                for lot in lots_el_li:
+                    #start writing to file data if needed
+                    ln = str(lot.querySelectorEval('td:nth-child(2) > a', 'node => node.innerText'))
+
+                    if ln not in lots_data:
+                        file_updated = 0 
+                        address = lot.querySelectorEval('td:nth-child(3)', 'node => node.innerText')
+                        model_plan = lot.querySelectorEval('td:nth-child(4)', 'node => node.innerText').split("ML")
+                        model_plan = model_plan[1].trim if len(model_plan) == 2 else model_plan[0]
+                        nso_url = lot.querySelectorEval('td:last-child > a:nth-child(6)', 'node => node.getAttribute("href")')
+                        options_url = lot.querySelectorEval('td:last-child > a:nth-child(4)', 'node => node.getAttribute("href")')
+                        lot_url = lot.querySelectorEval('td:nth-child(2) > a', 'node => node.getAttribute("href")')
+                        lot_info = {
+                            lot: ln, 
+                            lot_id: f'{project_dirname}{ln}', 
+                            address: address, 
+                            "model": model_plan, 
+                            "urls": [nso_url, options_url, lot_url]
+                            }
+                        lots_data[ln] = lot_info
+                    
+                # only if all keys are not found in lots_data
+                if file_updated is 0:
+                    with open('data/lots.json', 'w') as lots:
+                        json.dump(lots_data)
+                    
+                
+
+                
+                pprint(lots)
+                print("Making sure")
+                lot_num = int(input("What Lot number? \n"))
+                lot_str = f'0{str(lot_num)}' if lot_num <= 9 else str(lot_num)
+
+
+                lot_name = f'Lot{lot_str}'
+                
+                di = f'.\\log\\lots\\{project_dirname}\\{lot_name}'
+
+                if not os.path.exists(di):
+                    os.makedirs(di)
+
+                workbook = xlsxwriter.Workbook(f'{di}\\{lot_name}.xlsx')
+                
+            elif action_int == 1:
+                print("Warranty Chosen")
+                project_name = j["project_name"][project_int]
+
+                lots = {}
+                await page.goto(apath)
+                await page.waitForSelector('select[name="ProjectFilter"]')
+                await page.querySelector('select[name="ProjectFilter"]').click(f'option[value="{project_name}"]')
+                # If warranty
+                workbook = xlsxwriter.Workbook(f'.\\log\\lots\\{project_dirname}\\warranty_list.xlsx')
+
+            await browser.close()
+            # go to project and a  ction url
+
+    @staticmethod
+    async def lot_selection_check(page, lot_info)
+        urls = lot_info["urls"]
+        await page.goto(apath)
+
+
+
+            
+            
 
 class SimpleAT:
 
-    def __init__(self, open_tasks=None):
-        # should just be the initial url to get to for the website
-        self.open_tasks = {} if open_tasks is None else open_tasks
+        
+    @staticmethod
+    async def pyp_signin(page, login, count=0):
+        # webbrowser.get('chrome').open_new_tab(login_url)
+        # time.sleep(10)
+        query_sel = login["selectors"]
+        await page.type(query_sel[0], login["username"])
+        await page.type(query_sel[1], login["password"])
+        await page.click(query_sel[2])
+        # print("Await Nav")
+        while await page.querySelector(query_sel[1]) is not None and count < 5:
+            count = count + 1
+            print(count)
+            await SimpleAT.pyp_signin(page, login, count)
+        # await asyncio.sleep(20)
 
 
     # Press the green button in the gutter to run the script.
 
     # def startSession(self, cookieItem):
     #     self.s.cookies =
-
-    def setLogin(self, user_info, log_url):
-        # USER_INFO includes, password, username, email, phone_number, card_info
-
-        # storeLogins in a database or something similar
-        # TODO: Always check for errors, delete current "session" data and form data
-        with requests.Session() as sess:
-            # log_page = sess.get(self.log_url)
-            log_into_page = sess.post(log_url, user_info)
-            pprint(log_into_page.text)
-            api_cookies = log_into_page.cookies
-            print(api_cookies)
-            # if login and data.cookieSessions is determined
-            #  try to start session with cookies
-            # elseif login and data.form_data is determined try to login
-            # else try to login through random attempts
-            # if the login request fails try the next soup form html
-            # set proper cookies
-            # insert a genuine referer code
-
-            # headers = {'Referer': 'https://'}
-            # use another url if available on form
 
     def grabCookies(self, url):
         with requests.Session() as sess:
@@ -166,86 +199,9 @@ class SimpleAT:
 
 
 
-    @staticmethod
-    def email_startup(gmail=0, imap=1, port=587, message_details=None):
-        with open("data/gmails.json", "r") as gmails:
-            gmails = json.load(gmails)
-            server = gmails["imap"] if imap == 1 else gmails["smtp"]
-            email_info = gmails["fresh"][gmail]
-            if imap == 1:
-                try:
-                    s = imaplib.IMAP4_SSL(server)
-                    s.login(email_info[0], email_info[1])
-                    s.select('ETest')
-
-                    print(f'These emails are found: {email_info[0]}')
-                except Exception as e:
-                    mails = None
-                    print(e)
-
-            elif port == 465 and imap == 0:
-
-                with smtplib.SMTP_SSL(server, port, context=context) as server:
-                    server.login(email_info[0], email_info[1])
-            elif port == 587 and imap == 0:
-                try:
-                    s = smtplib.SMTP(server, port)
-                    s.ehlo()
-                    s.starttls(context=context)
-                    s.login(email_info[0], email_info[1])
-                    mails = s.mail(email_info[0])
-                    # do something then
-                    print(mails)
-                    s.close()
-                    print(f'This email was logged in: {email_info[0]}')
-                except Exception as e:
-                    print(e)
-
-    def test_email(self, email_to_info, gmail=0, port=587):
-        # dummy info
-        self.email_startup(gmail, imap=0, port=port, message_details=email_to_info)
-
-    @staticmethod
-    def selenium_start(url):
-        d = webdriver.Chrome(executable_path='drivers/chromedriver')
-        d.get(url)
-        return d
-
-    @staticmethod
-    def selenium_signin(sbrowser: webdriver.Chrome, login, names=[], count=0):
-
-        # webbrowser.get('chrome').open_new_tab(login_url)
-        # time.sleep(10)
-        sbrowser.find_element_by_name(names[0]).send_keys(login["username"])
-        sbrowser.find_element_by_name(names[1]).send_keys(login["password"])
-        sbrowser.find_element_by_class_name(names[2]).click()
-
-        while sbrowser.find_element_by_name(names[1]) is not None and count < 5:
-            SimpleAT.selenium_signin(sbrowser, login, names)
-            count = count + 1
-
-        pprint(sbrowser.get_cookies())
-
-
-
-    @staticmethod
-    def find_element_func_click(page: webdriver.Chrome, element_dict={}):
-        for element in element_dict:
-            if 2 in element and element[2] is not None:
-                elements = page.find_elements(element[0], element[1])
-                # TODO: add search advanced by element function
-                #  - associate with the element in loop search
-                i = element[2] - 1
-                new_element = elements[i]
-            elif 1 in element and element[1] is not None:
-                new_element = page.find_element(element[0], element[1])
-            else:
-                new_element = page.find_element(element[0])
-            new_element.click()
-            #try and change this function to a dynamic one if possible
-
-
-
 
 if __name__ == '__main__':
-    MoserApp().run()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(MoserHelpers().mosertopia_login_buildtopia())
+    loop.close()
+    # await MoserHelpers().mosertopia_login_buildtopia()    

@@ -46,6 +46,7 @@ class QVC:
     trans_border = "background-color: transparent;border: none;"
 
 
+
     @staticmethod
     def add_label(parent, geo=None, style=None, text=""):
         # QWidget widget
@@ -178,6 +179,40 @@ def send_webhook(webhook_type,site,profile,task_id,image_url):
             webhook.execute()
         except:
             pass
+
+def email_startup(gmail=0, imap=1, port=587, message_details=None):
+    with open("data/gmails.json", "r") as gmails:
+        gmails = json.load(gmails)
+        server = gmails["imap"] if imap == 1 else gmails["smtp"]
+        email_info = gmails["fresh"][gmail]
+        if imap == 1:
+            try:
+                s = imaplib.IMAP4_SSL(server)
+                s.login(email_info[0], email_info[1])
+                s.select('ETest')
+
+                print(f'These emails are found: {email_info[0]}')
+            except Exception as e:
+                mails = None
+                print(e)
+
+        elif port == 465 and imap == 0:
+
+            with smtplib.SMTP_SSL(server, port, context=context) as server:
+                server.login(email_info[0], email_info[1])
+        elif port == 587 and imap == 0:
+            try:
+                s = smtplib.SMTP(server, port)
+                s.ehlo()
+                s.starttls(context=context)
+                s.login(email_info[0], email_info[1])
+                mails = s.mail(email_info[0])
+                # do something then
+                print(mails)
+                s.close()
+                print(f'This email was logged in: {email_info[0]}')
+            except Exception as e:
+                print(e)
 
 def open_browser(link,cookies):
     threading.Thread(target = start_browser, args=(link,cookies)).start()
