@@ -1,6 +1,4 @@
 {
-  "trades": {},
-  "suppDeliv": {},
   "internalEmails": [
     "tr@moserhomes.com",
     "aj@moserhomes.com",
@@ -11,24 +9,23 @@
   "serviceEmails": [
     "service-warranty@moserhomes.com"
   ],
-  "scheduleEmails": {
-    "schedule@moserhomes.com": "password"
-  },
   "sign_in": {
     "username": "aj@moserhomes.com",
     "password": "6106371972",
     "selectors": ["#username", "#password", ".signIn-btn"]
   },
-  "projects": [
-    "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(6)",
-    "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(3)",
-    "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(11)"
+  "projectInfo": [
+    ["ML", "Marsh Lea", "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(6)"],
+    ["CH", "Custom Homes", "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(3)"],
+    ["TML", "T. Moser Land", "#bodyWapper > table:nth-child(2) > tbody > tr:nth-child(11)"]
   ],
-  "project_abbrs": ["ML", "CH", "TML"],
-  "project_name": ["Marsh Lea", "Custom Homes", "T. Moser Land"],
   "action_paths": [
     "td:nth-child(4) > a",
     "https://app.buildtopia.com/english_exec/service-owners?clean_session=true"
+  ],
+  "actionInfo": [
+    ["td:nth-child(4) > a", "lots.json"],
+    ["https://app.buildtopia.com/english_exec/service-owners?clean_session=true", "warranty.json"]
   ],
   "paths": {
     "url_base": "https://app.buildtopia.com",
@@ -39,30 +36,8 @@
     "cs": "https://app.buildtopia.com/english_exec/service-home",
     "cs_requests_list": "table[summary=\"Result Table\"]",
     "pm": "https://app.buildtopia.com/english_exec/projectmgmt-lot?op=project_lot_list_show&project_id=16455&clear_session=true"
-  },
-  "sort_ids": {
-    "landscape": ["grass", "rake", "seed", "level", "swale", "runoff"],
-    "special_glazing": ["shower door", "mirror"],
-    "plumber": ["plumbing", "sink", "tub", "sink", "fixture", "hose bib"],
-    "century": ["toe", "toe kicks", "handle", "knob"],
-    "tryon": ["trim", "casing", "baseboard", "door", "toe", "toe kicks", "handle", "knob", "latch", "latches"],
-    "electrician": ["outlet", "light", "fixture", "power"],
-    "avsec": ["security", "internet"],
-    "garage_door": ["Garage Door", "Garage door"],
-    "driveway": ["driveway"],
-    "tile": ["grout", "tile"],
-    "flooring": ["carpet", "hardwood", "lvp", "lvt", "transition"],
-    "drywall": ["nail pops", "pops", "drywall", "tape"],
-    "painter": ["paint", "stain"],
-    "home_services": ["generator"]
-  },
-  "supplier_ids": {
-    "paint": ["paint", "stain", "caulk"],
-    "premium": ["trim", "casing", "baseboard", "door", "window", "windows", "screen"],
-    "tile": ["grout", "tile", "caulk"],
-    "hardwood": [""]
-
   }
+  
 
 
 }
