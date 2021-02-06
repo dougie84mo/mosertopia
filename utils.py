@@ -21,19 +21,7 @@ from PyQt5.QtCore import QSize, QRect
 class SimpleAT:
 
         
-    @staticmethod
-    async def pyp_signin(page, login, count=0):
-        # webbrowser.get('chrome').open_new_tab(login_url)
-        # time.sleep(10)
-        query_sel = login["selectors"]
-        await page.type(query_sel[0], login["username"])
-        await page.type(query_sel[1], login["password"])
-        await page.click(query_sel[2])
-        # print("Await Nav")
-        while await page.querySelector(query_sel[1]) is not None and count < 5:
-            count = count + 1
-            print(count)
-            await SimpleAT.pyp_signin(page, login, count)
+    
         # await asyncio.sleep(20)
 
 
