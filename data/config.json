@@ -23,11 +23,8 @@
   "paths": {
     "login": "https://app.buildtopia.com/english_exec/login",
     "homepage": "https://app.buildtopia.com/english_exec/space",
-    "action": [
-      ["td:nth-child(4) > a", "selections"],
-      ["https://app.buildtopia.com/english_exec/service-owners?clean_session=true", "warranty"]
-    ],
-    "url_base": "https://app.buildtopia.com",
+    "action": ["selections", "warranty"],
+    "base": "https://app.buildtopia.com",
     "cs_requests": "https://app.buildtopia.com/english_exec/service-requests?clean_session=true",
     "pro": "[value=\"Project\"]",
     "cs": "https://app.buildtopia.com/english_exec/service-home",

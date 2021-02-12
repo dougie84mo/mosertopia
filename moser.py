@@ -26,21 +26,15 @@ class Moser:
         
         # try to build log folder
         for project_id, project_info in enumerate(self.jcon['projectInfo']):
-            if str(project_id) not in self.lots_data:
-                self.lots_data[str(project_id)] = {
+            if len(self.lots_data) < project_id:
+                self.lots_data[project_id] = {
                     "info": {"name": project_info[1], "id": project_id, "in": project_info[0]},
                     "lots": {}
                 }
                 self.__save_lots_data()
-                time.sleep(3)
+                time.sleep(1)
+                print(f'Project {project_info[1]} added to lots data')
         
-        while self.__action_id is None:
-            action = str(input("Would you like to see warranty or current selections? (0: Selections, 1: Warranty) \n"))
-            action_int = int(action)
-            if action_int == 1 or action_int == 0:
-                self.__action_id = action_int
-                self.__action = self.jcon["paths"]["action"][action_int]
-
         while self.__project_id is None:
             project = str(input("What Project would you like to view? (0: Marsh Lea, 1: Custom Homes, 2: T. Moser Land) \n"))
             project_int = int(project)
@@ -48,29 +42,40 @@ class Moser:
                 self.__project_id = project_int
                 self._pinfo = self.jcon["projectInfo"][project_int]
 
-        if self.__action_id is not None and self.__project_id is not None:
+        while self.__action_id is None:
+            action = str(input("Would you like to see warranty or current selections? (0: Selections, 1: Warranty, -1: Reset Lot Info) \n"))
+            action_int = int(action)
+            if action_int == 1 or action_int == 0:
+                self.__action_id = action_int
+                self.__action = self.jcon["paths"]["action"][action_int]
+            elif action_int == -1: 
+                self.__action_id = action_int
+
+        if self.__action_id == -1:
+
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.lot_reference_update())
+            loop.close()
+            
+        elif self.__action_id is not None and self.__project_id is not None:
             # If initialization information is correct then start asynchronousity
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self.mosertopia_login_buildtopia())
             loop.close()
 
+    
+
     async def mosertopia_login_buildtopia(self):
         # - Default Viewport creats viewport maxmiuzzed to browser window size
         # - args [start-max..] for maximum browser size [args=['--start-maximized'],]
-        browser = await launch(headless=False, defaultViewport=None)
-        pages  = await browser.pages()
-        page = pages[0]
-        await page.goto(self.jcon["paths"]["login"])
-        await Moser.pyp_signin(page, login=self.jcon["sign_in"])
-        # print("Should result to next page")
-        await page.goto(self.jcon["paths"]["homepage"])
+        await self.lot_selection_check()
+        browser = await self.moser_browser()
+        page = await self.open_mosertopia_page(browser)
+
         #Gather project info
         if self.__action_id == 0:
             
-            await page.waitForSelector(self._pinfo[2])
-            await page.click(f'{self._pinfo[2]} > {self.__action[0]}')
-            await self.lot_reference_update(page)
-            await self.lot_selection_check()
+            
             # SHOULD set NSO and Option list and check len(nso) to avoid looping through items again
             ######### OPTIONS LIST
             await self.selection_element_cycle(page, 0, file_selector="td:last-child > a")
@@ -84,68 +89,168 @@ class Moser:
             ################################
             # Warranty Action
             ################################
-            await page.goto(self.__action[0])
-            print("Warranty Chosen:")
-            await asyncio.sleep(3)
-            await page.waitForSelector('select[name="ProjectFilter"]')
-            await page.click(f'select[name="ProjectFilter"] > option[value="{self._pinfo[1]}"]')
-            await self.lot_reference_update(page, "td:nth-child(3)")
-            await self.lot_selection_check()
-
+            
             await page.goto(self.current_lot["warranty_url"])
-            await page.waitForSelector(info_table_selector)
             # //*[@id="bodyWapper"]/table[2]/tbody/tr/td[5]/table/tbody/tr[4]/td/table[2]/tbody/tr[2]/td[1]/table[3]
             
-            warranty_el_li = await Moser.get_tr_background(page)
-            warranty_urls = []
-            warranty_items = []
-            for warranty_el in warranty_el_li:
-                request_info = await warranty_el.querySelectorEval("td:nth-child(1) a", '''
+            warranty_summary_els = await Moser.get_tr_background(page)
+            warranty_groups = []
+            for warranty_el in warranty_summary_els:
+                summary_info = await warranty_el.querySelectorEval("td:nth-child(1) a", '''
                     (node) => (
                         return [node.innerText, node.getAttribute("href")];
                     )
                 ''')
-                request_info.append(await warranty_el.Jeval("td:nth-child(2)", "node => node.innerText"))
-                warranty_urls.append(request_info)
+                request_info = {
+                    "summary": await warranty_el.Jeval("td:nth-child(2)", "node => node.innerText"),
+                    "request_url": summary_info[1],
+                    "request_id": summary_info[0],
+                }
+                warranty_groups.append(request_info)
             
-            for warranty_url in warranty_urls:
-                request_trs = await Moser.get_tr_background(page, warranty_url[1], .1)
+            warranty_items = []
+            for warranty_group in warranty_groups:
+                request_trs = await Moser.get_tr_background(page, warranty_group[1], .1)
                 for tr in request_trs:
                     status = await tr.Jeval("td:nth-child(2)", "node => node.innerText")
-                    is_open = bool(status.strip() == "Open")
                     wi = {
-                        "n": await tr.Jeval("td:first-child", "node => node.innerText"),
                         "description": await tr.Jeval("td:nth-child(3)", "node => node.innerText"),
                         "status": status,
-                        "is_open": is_open
+                        "is_open": bool(status.strip() == "Open")
                     }
-                    if is_open:
+                    if wi["is_open"]:
                         wi["urls"] = [
-                            await tr.Jeval("td:last-child > a:nth-child(1)", 'node => node.getAttribute("href")'),
                             await tr.Jeval("td:last-child > a:nth-child(2)", 'node => node.getAttribute("href")'),
+                            await tr.Jeval("td:last-child > a:nth-child(1)", 'node => node.getAttribute("href")'),
                         ]
-                    warranty_items.append(wi)
-                # generate excel file from buildtopia
-                # eventually check if file is created and edit that one. 
-                # What type of information?
+                    warranty_items.append(wi+warranty_group)
 
-            # If lot checked does not exist then generate warranty workbook. Ask question below after generation
-            # Check if you want to update buildtopia or generate warranty list
+            for warranty_item in warranty_items:
+                if "urls" in warranty_item:
+                    await page.goto(warranty_item["urls"])
+                    await page.waitForSelector("#middle_left")
+                    sub_info_rows = await page.querySelectorAll("#middle_left > table:nth-child(1) > tbody > tr")
+                    warranty_item["internal_details"] = await sub_info_rows[1].Jeval("td:nth-child(2) > textarea", 'node => node.innerText')
+                    # tr:nth-child(2) > td:nth-child(2) > textarea
+                    defective_group = await sub_info_rows[5].Jeval('td:nth-child(6) > option[selected="selected"]', 'node => node.innerText')
+                    defective_group = defective_group.split(' ', 1)
+                    warranty_item["defect_group_name"] = defective_group[1]
+                    warranty_item["defect_code"] = defective_group[0]
+                    # tr:nth-child(6) > td:nth-child(2) > 
+
+
 
         await browser.close()
+            
+            # generate excel file from buildtopia
+
+            # Check if you want to update buildtopia or generate warranty list
 
 
-    async def update_selections(self, info):
-        if not os.path.exists(workbook_name):
-                # create new file;
-            workbook = xlsxwriter.Workbook(self.get_lot_directory(fid=f'{self.__action[1]}.xslx'))
+    async def lot_reference_update(self):
+        browser = await self.moser_browser()
+        page = await self.open_mosertopia_page(browser)
+        await page.goto(self.jcon["paths"]["homepage"])
+
+        await page.waitForSelector(self._pinfo[2])
+        await page.click(f'{self._pinfo[2]} > td:nth-child(4) > a')
+        
+        lots_el_li = await self.get_tr_background(page)
+
+        for lot in lots_el_li:
+            #start writing to file data if needed
+            ln = str(await lot.querySelectorEval("td:nth-child(2) > a", 'node => node.innerText'))
+            address = await lot.querySelectorEval('td:nth-child(3)', 'node => node.innerText')
+            model_plan = await lot.querySelectorEval('td:nth-child(4)', 'node => node.innerText')
+            plan_id = model_plan.split("ML")
+            # modeL = plan_id[1].trim if len(plan_id) == 2 else plan_id[0]
+            lot_url = await lot.querySelectorEval('td:nth-child(1) > a', 'node => node.getAttribute("href")')
+            nso_url = await lot.querySelectorEval('td:last-child > a:nth-child(6)', 'node => node.getAttribute("href")')
+            options_url = await lot.querySelectorEval('td:last-child > a:nth-child(4)', 'node => node.getAttribute("href")')
+            
+            lot_info = {
+                "ln": ln,
+                "address": address.replace("\t", ""), 
+                "model": plan_id[1].replace("\t", "").strip(),
+                "urls": [options_url, nso_url, lot_url],
+                "nsos": [{}, {}], 
+                "options": [{}, {}],
+                "warranty_url": False,
+                "contact_one": [],
+                "contact_two": []
+            }
+
+            temp_dir = self.get_lot_directory(lot_str=ln)
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+
+                # create 
+            selection_file = f'{temp_dir}\\lot_info.xlsx'
+            if not os.path.exists(selection_file):
+                temp_sel_workbook = xlsxwriter.Workbook(selection_file)
+                workbook_vars = {
+                    "general": ["Lot Id", "Address", "Model"],
+                    "options": ["Id", "Name", "Desciption", "Selection Notes", "Quantity", "See Files"],
+                    "nsos": ["Accepted", "Sub Category", "Description", "Location", "Red. Description", "File Names"],
+                    "warranty": ["Id", "Summary", "Sub Description", "Openned", "Internal Details", "Defect Code", "Defect Name"],
+                }
+                
+                for worksheet_name, worksheet in workbook_vars.items():
+                    temp_worksheet = temp_sel_workbook.add_worksheet(worksheet_name)
+                    Moser.xslx_write(temp_worksheet, worksheet)
+                    if worksheet_name == "general":
+                        general_info = [ln, lot_info["address"], lot_info["model"]]
+                        Moser.xslx_write(temp_worksheet, general_info, 1)
+
+                temp_sel_workbook.close()
+
+                await asyncio.sleep(4)
+                # TODO: also initialize warranty and selection xcel sheets if possible
+            self.get_lot_dict()[ln] = lot_info
+
+                #  lot_url = lot.querySelectorEval('td:nth-child(3) > a', 'node => node.getAttribute("href")')
+
+        await page.goto("https://app.buildtopia.com/english_exec/service-owners?clean_session=true")
+        print("Warranty Chosen:")
+        await asyncio.sleep(3)
+        pf = 'select[name="ProjectFilter"]'
+        cf = f'{pf} > option[value="{self._pinfo[1]}"]'
+        await page.waitForSelector(pf)
+        await page.click(pf)
+
+        await page.click()
+        war_lots = await self.get_tr_background(page)
+        for war_lot in war_lots:
+            ln = str(await war_lot.querySelectorEval("td:nth-child(3)", 'node => node.innerText'))
+            ln = ln.strip()
+            if ln in self.get_lot_dict() and self.get_lot_dict()[ln]["warranty_url"] == False:
+                self.get_lot_dict()[ln]["warranty_url"] = await lot.querySelectorEval('td:nth=child(1) > a', 'node => node.getAttribute("href")')
+        await browser.close()
+        self.__save_lots_data()
 
 
-    async def update_warranty(self, workbook_name, info):
-        if not os.path.exists(workbook_name):
-                # create new file;
-            workbook = xlsxwriter.Workbook(workbook_name)
+    # async def update_selections(self, info):
+    #     if not os.path.exists(workbook_name):
+    #             # create new file;
+    #         workbook = xlsxwriter.Workbook(self.get_lot_directory(fid=f'{self.__action[1]}.xslx'))
+
+
+    # async def update_warranty(self, workbook_name, info):
+    #     if not os.path.exists(workbook_name):
+    #             # create new file;
+    #         workbook = xlsxwriter.Workbook(workbook_name)
     # async def create_warranty(self):
+
+    async def moser_browser(self):
+        return await launch(headless=False, defaultViewport=None)
+
+    async def open_mosertopia_page(self, browser):
+        pages  = await browser.pages()
+        page = pages[0]
+        await page.goto(self.jcon["paths"]["login"])
+        await Moser.pyp_signin(page, login=self.jcon["sign_in"])
+        # print("Should result to next page")
+        return page
 
     @staticmethod
     async def get_tr_background(page, url=None, wait_sec=3):
@@ -155,22 +260,15 @@ class Moser:
         await page.waitForSelector("tr.background")
         return await page.querySelectorAll("tr.background, tr.altbackground")
     
-    @staticmethod
-    async def warranty_edit_request(tr):
-        return {
-            
-        }
-
 
     def get_project_dict(self):
-        pid_str = str(self.__project_id)
-        return self.lots_data[pid_str]
+        return self.lots_data[self.__project_id]
 
     def get_lot_dict(self):
         return self.get_project_dict()["lots"]
         
     def get_in_lot_dict(self, lot):
-        return self.get_lot_dict(lot)[lot]
+        return self.get_lot_dict()[lot]
     
     def get_lot_directory(self, lot_str=None, fid=None, download_path=None):
         lot_name = self.current_lot["ln"] if lot_str is None else lot_str
@@ -194,76 +292,27 @@ class Moser:
             lnum = str(input("What Lot number? \n"))
         self.current_lot = self.get_lot_dict().get(lnum)
 
-    async def lot_reference_update(self, page, lot_selector="td:nth-child(2) > a"):
-        await page.waitForSelector("tr.background")
-        lots_el_li = await page.querySelectorAll("tr.background, tr.altbackground")
-
-        for lot in lots_el_li:
-            #start writing to file data if needed
-            ln = str(await lot.querySelectorEval(lot_selector, 'node => node.innerText'))
-            lot_in_dir = bool(ln in self.get_lot_dict())
-            if not lot_in_dir and self.__action_id === 0:
-                address = await lot.querySelectorEval('td:nth-child(3)', 'node => node.innerText')
-                model_plan = await lot.querySelectorEval('td:nth-child(4)', 'node => node.innerText')
-                plan_id = model_plan.split("ML")
-                # modeL = plan_id[1].trim if len(plan_id) == 2 else plan_id[0]
-                lot_url = await lot.querySelectorEval('td:nth-child(1) > a', 'node => node.getAttribute("href")')
-                nso_url = await lot.querySelectorEval('td:last-child > a:nth-child(6)', 'node => node.getAttribute("href")')
-                options_url = await lot.querySelectorEval('td:last-child > a:nth-child(4)', 'node => node.getAttribute("href")')
                 
-                lot_info = {
-                    "ln": ln
-                    "address": address.replace("\t", ""), 
-                    "model": plan_id[1].replace("\t", "").strip(),
-                    "urls": [options_url, nso_url, lot_url],
-                    "nsos": [{}, {}], 
-                    "options": [{}, {}],
-                    "warranty_url": False,
-                    "contact_one": [],
-                    "contact_two": []
-                }
-
-                print(f'Newly generated : {ln}')
-                temp_dir = self.get_lot_directory(lot_str=ln)
-                if not os.path.exists(temp_dir):
-                    os.makedirs(temp_dir)
-                    # create 
-                    selection_file = f'{temp_dir}\\lot_info.xlsx'
-                    temp_sel_workbook = xlsxwriter.Workbook(selection_file)
-                    workbook_vars = {
-                        "General Info": [],
-                        "Options": [],
-                        "Nsos": [],
-                        "Warranty": [],
-                    }
-                    
-                    for worksheet_name, worksheet in workbook_vars.items():
-                        temp_worksheet = temp_sel_workbook.add_worksheet(worksheet_name)
-                        row = 0
-                        column = 0
-                        for header in worksheet
-                            temp_worksheet.write(row, column, header)
-                            column += 1
-                            
-                    temp_sel_workbook.close()
-
-                    await asyncio.sleep(4)
-                    # TODO: also initialize warranty and selection xcel sheets if possible
-                self.get_lot_dict()[ln] = lot_info
-
-                #  lot_url = lot.querySelectorEval('td:nth-child(3) > a', 'node => node.getAttribute("href")')
-            elif self.__action_id === 1 and (lot_in_dir and self.get_lot_dict()[ln]["warranty_url"] === False):
-                self.get_lot_dict()[ln]["warranty_url"] = await lot.querySelectorEval('td:nth=child(1) > a', 'node => node.getAttribute("href")')
-
-        self.__save_lots_data()            
         # only if all keys are not found in lots_data
+
+    @staticmethod
+    def xslx_write(wrksheet, arr, row=0):
+        column = 0
+        for a in arr:
+            wrksheet.write(row, column, a)
+            column += 1
+    
+    def build_abs_path(self, url):
+        return f'{self.jcon["paths"]["base"]}{url}'
+
 
     async def selection_element_cycle(self, page, hid=0, file_selector=None):
         file_urls = {}
-        sel_name = "nsos" if hid === 1 else : "options" 
+        sel_name = "nsos" if hid == 1 else "options" 
         url = self.current_lot["urls"][hid]
-        options_list_els = await Moser.get_tr_background(page, url)
-        completion_callback = Moser.option_element_cycle if hid is 0 else Moser.nso_element_cycles
+        buildtopia_url = f'{self.jcon["paths"]["base"]}{url}'
+        options_list_els = await Moser.get_tr_background(page, buildtopia_url)
+        completion_callback = Moser.option_element_cycle if hid == 0 else Moser.nso_element_cycles
         for row in options_list_els:
             tds = await row.querySelectorAll("td")
             td_result = completion_callback(tds)
@@ -277,8 +326,8 @@ class Moser:
                 ''')
                 if file_request != "0":
                     td_result["file_url"] = file_request
-                    self.current_lot[sel_name] = td_result[1].append(file_request)
-            self.append(td_result)
+                    self.current_lot[sel_name][1][td_result["id"]] = td_result[1].append(file_request)
+            self.current_lot[sel_name][0][td_result["id"]] = td_result
 
         len_files = len(file_urls)
         if file_urls and len_files != len(self.current_lot[sel_name][hid][1]):
@@ -295,15 +344,20 @@ class Moser:
                     #     await cdp.send("Page.setDownloadBehavior", {'behavior': 'allow', "downloadPath": self.get_lot_directory(download_path=True)})
         self.__save_lots_data()
 
-    def possible_warranty_notes(self, page, info_table_selector):
+    async def possible_warranty_notes(self, page, info_table_selector):
+        await page.waitForSelector(info_table_selector)
+
         info_table_trs = await page.querySelectorAll(f'{info_table_selector} > tr')
         contact_one = {
             "name": await info_table_trs[0].Jeval("td:nth-child(2)", "node => node.innerText"),
             "email": await info_table_trs[0].Jeval("td:nth-child(4)", "node => node.innerText"),
             "phone": await info_table_trs[3].Jeval("td:nth-child(4)", "node => node.innerText")
         }
-        address = await info_table_trs[1].Jeval("td:nth-child(2)", "node => node.innerText")
-        settlement_date = await info_table_trs[3].Jeval("td:nth-child(2)", "node => node.innerText")
+        homeowner_lot_info = {
+            "contacts": [contact_one],
+            "address": await info_table_trs[1].Jeval("td:nth-child(2)", "node => node.innerText"),
+            "settlement_date": await info_table_trs[3].Jeval("td:nth-child(2)", "node => node.innerText") 
+        }
         contact_two_link = await info_table_trs[4].Jeval("td:nth-child(2)", '''
             (node) => (
                 i = node.innerText.trim();
@@ -315,6 +369,9 @@ class Moser:
                 }
             )
         ''')
+
+        return homeowner_lot_info
+
         
     @staticmethod
     async def option_element_cycle(tds):
@@ -332,12 +389,22 @@ class Moser:
     async def nso_element_cycles(tds):
         accepted_str = await tds[2].evaluate('(element) => element.innerText').strip()
         accepted = False if accepted_str not in NSO_ACCEPTED else accepted_str
+        desc = await tds[5].evaluate('(element) => element.innerText')
+        pone, ptwo = desc.replace("&nbsp;", "").split("<hr>")
+        sub_cat, sub_desc = pone.split(" - ")
+        sub_cat_red, sub_desc_red = pone.split(" - ")
+
+
+        location = await tds[4].evaluate('(element) => element.innerText').strip()
 
         return {
             "id": await tds[1].evaluate('(element) => element.innerText').strip(),
-            "location": await tds[4].evaluate('(element) => element.innerText').strip(),
-            "description": await tds[5].evaluate('(element) => element.innerText').strip(),
-            "accepted": accepted
+            "accepted": accepted,
+            "sub_category": sub_cat,
+            "description": sub_desc,
+            "second_desc": sub_desc_red,
+            "location": location if location != "Selections" else "NA",
+            "accepted_text": accepted_str,
         }
 
     @staticmethod
