@@ -6,6 +6,7 @@
     "paula@moserhomes.com",
     "christine@moserhomes.com"
   ],
+  "production": false,
   "serviceEmails": [
     "service-warranty@moserhomes.com"
   ],
