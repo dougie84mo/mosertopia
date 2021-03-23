@@ -2,3 +2,4 @@
 /data/gmails.json
 /data/config.json
 log/
+.DS_Store
