@@ -24,7 +24,7 @@
   "paths": {
     "login": "https://app.buildtopia.com/english_exec/login",
     "homepage": "https://app.buildtopia.com/english_exec/space",
-    "action": ["selections", "warranty"],
+    "action": ["reset", "selections", "warranty"],
     "base": "https://app.buildtopia.com",
     "cs_requests": "https://app.buildtopia.com/english_exec/service-requests?clean_session=true",
     "pro": "[value=\"Project\"]",

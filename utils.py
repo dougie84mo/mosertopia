@@ -1,8 +1,10 @@
 import Moser
+from unittest.mock import patch
+from unittest import TestCase
 
 
 
-class MoserTest():
+class MoserTest(unittest.TestCase):
 
     def test_refresh():
         return True
