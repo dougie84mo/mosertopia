@@ -9,26 +9,19 @@ import wget
 import csv
 import string
 
-global NSO_ACCEPTED
+
 NSO_ACCEPTED = [
     "NSO to PO",
     "Buyer Accepted",
     "Released",
     "Approved"
 ]
-global LOT_DIR
 LOG_DIR = ".\\log"
-global WARRANT_DIR
 WARRANT_DIR = ".\\warranty"
-global RESET
 RESET = 0
-global SELECTIONS
 SELECTIONS = 1
-global WARRANTY
 WARRANTY = 2
-global GATHER_WARRANTY_INFO
 GATHER_WARRANTY_INFO = 3
-global JCONFIG
 with open("data/config.json") as jconfig:
     jcon = json.load(jconfig)
     JCONFIG = jcon
@@ -40,8 +33,6 @@ class Moser:
     __action_lots = []
     __action_id = None
     __project_id = None
-    __excel_info = []
-    __temp_files = []
 
     def __init__(self, argv):
         with open("data/lots.json") as lots:    
@@ -67,12 +58,9 @@ class Moser:
         if largv > 2:
             action_int = int(argv[2])
             self.set_action_id(action_int)
-        if largv > 3 and self.__action_id not None and self.__project_id not None:
+        if largv > 3 and self.__action_id is not None and self.__project_id is not None:
             lot_action = str(argv[3])
-            self.__action_lots = lot_action.split(',')
-            # if self.__action_id != 3 and lot_action in self.get_lot_dict():
-            #     self.current_lot = self.get_in_lot_dict(lot_action)
-            # elif self.__action_id == 3:
+            self.lot_selection_check(lot_action)
 
         while self.__project_id is None:
             project = str(input("What Project would you like to view?\n(0: Marsh Lea, 1: Custom Homes, 2: T. Moser Land)\n"))
@@ -80,11 +68,11 @@ class Moser:
             self.set_project_id(project_int)
 
         while self.__action_id is None:
-            action = str(input("Would you like to see warranty or current selections?\n(0: Selections, 1: Warranty, -1: Reset Lot Info) \n"))
+            action = str(input("Would you like to see warranty or current selections?\n(0: : Reset Lot Info, 1: Selections, 2: Warranty, 3: Gather Open Warranty Items) \n"))
             action_int = int(action)
             self.set_action_id(action_int)
 
-        if self.__project_id not None and self.__action_id not None:
+        if self.__project_id is not None and self.__action_id is not None:
             loop = asyncio.get_event_loop()
             if self.__action_id == 0:
                 loop.run_until_complete(self.lot_reference_update())
@@ -100,15 +88,38 @@ class Moser:
             self._pinfo = JCONFIG["projectInfo"][project_int]
 
     def set_action_id(self, action_int):
-        if action_int == 2 or action_int == 1:
-            self.__action_id = action_int
-            self.__action = JCONFIG["paths"]["action"][action_int]
-        elif action_int == 0 or action_int == 3: 
+        if action_int >= 0 and action_int < 4:
             self.__action_id = action_int
     
     def set_current_lot(self, lnum):
         self.current_lot = self.get_lot_dict().get(lnum)    
 
+    def lot_selection_check(self, lot_nums=None):
+        if not self.__action_lots:
+            # lnum = None
+            while len(self.__action_lots) == 0:
+                if lot_nums is None:
+                    print("Choose from the list with ',' separated lots for multiple options")
+                    print(", ".join(self.get_lot_dict().keys()))
+                    lstr = str(input("What Lot numbers? \n"))
+                else:
+                    lstr = str(lot_nums)
+                lstr = lstr.split(',')
+                print(lstr)
+                for lot in lstr:
+                    lot = str(lot)
+                    if len(lot) == 1:
+                        lot = f'0{lot}'
+                    if self.in_lot_dict(lot):
+                        self.__action_lots.append(lot)
+                    else:
+                        lot_nums = None
+                        print(f'Lot {lot} is not in project {"All" if self.__project_id is None else self.__project_id}')
+                print(self.__action_lots)
+                # lnum = lstr
+        else:
+            print("Lots have already been selected")
+        # self.set_current_lot(lnum)
 
     async def project_lot_warranty(self):
         for lot in self.__action_lots:
@@ -116,28 +127,32 @@ class Moser:
         # CHANGE THE LOT QUESTION TO INCORPORATE MANY LOTS
         # get all of the lots
         # loop through lots in 
-    
 
     async def lot_information_scrap(self):
         # - Default Viewport creats viewport maxmiuzzed to browser window size
         # - args [start-max..] for maximum browser size [args=['--start-maximized'],]
-        await self.lot_selection_check()
+        self.lot_selection_check()
+        await asyncio.sleep(5)
         browser = await self.moser_browser()
         page = await self.open_mosertopia_page(browser)
-        if self.__action_id == 1:
-            ######### OPTIONS LIST
-            await self.selection_element_cycle(page, 0, file_selector="td:last-child > a")
-            ########## NSO LIST
-            await self.selection_element_cycle(page, 1, file_selector="td:nth-child(6) > a")                
+        for lot in self.__action_lots:
+            self.set_current_lot(lot)
+            if self.__action_id == 1:
+                ######### OPTIONS LIST
+                await self.selection_element_cycle(page, 0, file_selector="td:last-child > a")
+                ########## NSO LIST
+                await self.selection_element_cycle(page, 1, file_selector="td:nth-child(6) > a")                
 
-        elif self.__action_id == 2:
-            ########## Warranty Action            
-            await page.goto(self.abs_path(self.current_lot["warranty_url"]))            
-            warranty_info = await self.gather_warranty_info(page)
+            elif self.__action_id == 2:
+                ########## Warranty Action            
+                await page.goto(self.abs_path(self.current_lot["warranty_url"]))            
+                warranty_info = await self.gather_warranty_info(page)
                     
+        # Puppeteer is complete
         await browser.close()
         ########## EXCEL UPDATE
         self.update_lot_info_file()
+        # Clean up trash
         await asyncio.sleep(4)
 
 
@@ -145,7 +160,6 @@ class Moser:
         browser = await self.moser_browser()
         page = await self.open_mosertopia_page(browser)
         await page.goto(JCONFIG["paths"]["homepage"])
-
         await page.waitForSelector(self._pinfo[2])
         await page.click(f'{self._pinfo[2]} > td:nth-child(4) > a')
         
@@ -183,9 +197,7 @@ class Moser:
             await asyncio.sleep(1)
                 # TODO: also initialize warranty and selection xcel sheets if possible
             self.get_lot_dict()[ln] = lot_info
-
                 #  lot_url = lot.querySelectorEval('td:nth-child(3) > a', 'node => node.getAttribute("href")')
-
         await page.goto("https://app.buildtopia.com/english_exec/service-owners")
         pf = 'select[name="ProjectFilter"]'
         cf = f'{pf} > [value="{self._pinfo[1]}"]'
@@ -258,8 +270,12 @@ class Moser:
         
     def in_lot_dict(self, ln):
         return ln in self.get_lot_dict()
+            
+    def set_lot(self, ln):
+        if self.in_lot_dict():
+            self.current_lot = self.get_lot_in_dict(ln)
         
-    def get_in_lot_dict(self, lot):
+    def get_lot_in_dict(self, lot):
         return self.get_lot_dict()[lot]
     
     def get_lot_directory(self, lot_str=None, file_name=None, download_path=None):
@@ -267,31 +283,19 @@ class Moser:
         a = f'{LOG_DIR}\\{self._pinfo[0]}\\{lot_name}'
         if download_path == True:
             return f'{a}\\'
-        return f'{a}\\{file_name}' if file_name not None else a
+        return f'{a}\\{file_name}' if file_name is not None else a
 
     def __save_lots_data(self):
-        if self.current_lot not None and self.__project_id not None:
+        if self.current_lot is not None and self.__project_id is not None:
             self.lots_data[self.__project_id][self.current_lot["ln"]] = self.current_lot
         with open(f'data/lots.json', 'w') as lots:
             json.dump(self.lots_data, lots)
 
-    async def lot_selection_check(self):
-        lnum = None
-        while lnum is None or lnum not in self.get_lot_dict():
-            print("Choose from the list with ',' separated lots for multiple options")
-            print(", ".join(self.get_lot_dict().keys()))
-            lstr = str(input("What Lot number? \n"))
-            lstr = lstr.split(',')
-            lots_dont_exist = true
-            for lot in lstr:
-                if self.in_lot_dict()
-            if not lots_dont_exist:
-                lnum = lstr
-        self.set_current_lot(lnum)
+    
         # only if all keys are not found in lots_data
 
 
-    async def gather_warranty_info(page):
+    async def gather_warranty_info(self, page):
         warranty_summary_els = await MoserStatic.get_tr_background(page)
         warranty_items = []
         if warranty_summary_els:
@@ -362,7 +366,7 @@ class Moser:
         url = self.current_lot["urls"][hid]
         buildtopia_url = f'{JCONFIG["paths"]["base"]}{url}'
         options_list_els = await MoserStatic.get_tr_background(page, buildtopia_url)
-        completion_callback = Moser.option_element_cycle if hid == 0 else Moser.nso_element_cycles
+        completion_callback = MoserStatic.option_element_cycle if hid == 0 else MoserStatic.nso_element_cycles
         csv_file_location = self.get_lot_directory(file_name=f'{sel_name}.csv')
         # Open Excel file and get the correct selection
         with open(csv_file_location, "w", newline="") as csvfile:
@@ -374,8 +378,8 @@ class Moser:
 
                 # Gets file page url
                 
-                if td_result not None:
-                    if file_selector not None:
+                if td_result is not None:
+                    if file_selector is not None:
                         file_request = await row.querySelectorEval(file_selector, 'node => [node.innerText, node.getAttribute("href")]')
                         # print(file_request)
                         if file_request[0] != "0":
@@ -466,7 +470,7 @@ class MoserStatic:
     @staticmethod
     async def get_tr_background(page, url=None, wait_sec=3):
         await asyncio.sleep(wait_sec)
-        if url not None:
+        if url is not None:
             await page.goto(url)
         await page.waitForSelector("tr.background")
         return await page.querySelectorAll("tr.background, tr.altbackground")
@@ -482,7 +486,7 @@ class MoserStatic:
         await asyncio.sleep(1)
         still_login = await page.querySelector(query_sel[1])
         # print("Await Nav")
-        if still_login not None and count < 5:
+        if still_login is not None and count < 5:
             count = count + 1
             # print(count)
             await MoserStatic.pyp_signin(page, login, count)
