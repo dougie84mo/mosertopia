@@ -9,7 +9,6 @@ import csv
 import string
 import datetime
 
-
 NSO_ACCEPTED = [
     "NSO to PO",
     "Buyer Accepted",
@@ -340,7 +339,7 @@ class Moser:
         if action_int >= 0 and action_int < 5:
             self.__action_id = action_int
     
-    def set_current_lot(self, lnum):
+    def set_current_lot(self, lnum): 
         self.current_lot = self.get_lot_dict().get(lnum)    
 
     def lot_selection_check(self, lot_nums=None):
